@@ -40,6 +40,23 @@ class cell(object):
             it.append(np.var(self.eeg[i][fin:]))
             var.append(it)
         return var
+    
+    # return 2 wavs, the max(abs(eegs)) in a specific period
+    # Change the parameters 'begin_wav' and 'duration' to specify the period (unit='seconds') 
+    # Set the begin of audio as time 0; default period: from 30s to 40s 
+    # the frequence of wavs are transformed to 128 Hz by calculate the variance
+    def get_wav_eeg(self, begin_wav=30,duration=10):
+        transform_rate = self.f_wav/self.f_eeg
+        wav0 = []
+        wav1 = []
+        for i in range(duration*128):
+            begin = int(begin_wav*self.f_wav+i*transform_rate)
+            end  = int(begin_wav*self.f_wav+(i+1)*transform_rate)
+            wav0.append(np.var(self.wav[0][begin:end])*1000) 
+            wav1.append(np.var(self.wav[1][begin:end])*1000) 
+            eeg = [self.eeg[i][self.eeg_debut+begin_wav*128:self.eeg_debut+(begin_wav+duration)*128] for i in range(128)] 
+        return abs(np.asarray(wav0)),abs(np.asarray(wav1)),np.max(abs(np.asarray(eeg)),axis=0)
+   
 
 class cell1(object):
     def __init__(self,cell):
@@ -137,3 +154,61 @@ for i in range(128):
 plt.plot(c0,'g')
 plt.plot(c1,'r')
 plt.show()
+
+##########################################select feature1, feature2#################################################################
+# feature 1 : l2 distance between max(eeg) and wav0 estimated 
+# feature 2 : l2 distance between max(eeg) and wav1 estimated by top 30 points,128Hz
+
+feature1=[]
+feature2=[]
+top_n=30
+
+for k in cell:
+    
+    wav0,wav1,eeg = k.get_wav_eeg(begin_wav = 10, duration = 40)
+
+    # wav0 approximated by top 30 points
+    x0 = np.append(wav0.argsort()[-top_n:][::-1],[0,40*128-1]) 
+    y0 = scale(wav0[x0])
+    f0 = interp1d(x0, y0)
+    
+    # wav1 approximated by top 30 points
+    x1 = np.append(wav1.argsort()[-top_n:][::-1],[0,40*128-1]) 
+    y1 = scale(wav1[x1])
+    f1 = interp1d(x1, y1)
+
+    
+    x_eeg = np.append(eeg.argsort()[-top_n:][::-1],[0,40*128-1])
+    y_eeg = scale(eeg[x_eeg])
+    f_eeg = interp1d(x_eeg,y_eeg)
+    
+    # l2 distance
+    x_new=np.linspace(10,40*128-10,1000)
+    feature1.append(sum((f0(x_new)-f_eeg(x_new))**2))
+    feature2.append(sum((f1(x_new)-f_eeg(x_new))**2))
+
+print 'for first 30 cells (tgt=0)',np.mean(np.asarray(feature1[:30]))
+print 'for last 30 cells (tgt=1)',np.mean(np.asarray(feature1[30:]))
+
+plt.figure()
+plt.subplot(121)
+plt.boxplot(np.asarray(feature1[:30]))
+plt.ylim(0,6000)
+plt.subplot(122)
+plt.boxplot(np.asarray(feature1[30:]))
+plt.ylim(0,6000)
+plt.show()
+
+print 'for first 30 cells (tgt=0)',np.mean(np.asarray(feature2[:30]))
+print 'for last 30 cells (tgt=1)',np.mean(np.asarray(feature2[30:]))
+
+plt.figure()
+plt.subplot(121)
+plt.boxplot(np.asarray(feature2[:30]))
+plt.subplot(122)
+plt.boxplot(np.asarray(feature2[30:]))
+plt.show()
+
+
+##########################################select feature1, feature2#################################################################
+
