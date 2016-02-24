@@ -1,6 +1,9 @@
+
 import numpy as np 
 import h5py
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+from sklearn.preprocessing import scale
 
 f = h5py.File('train_data.mat','r')
 ff = h5py.File('test_data.mat','r')
@@ -28,6 +31,9 @@ class cell(object):
                 self.value.append(0.)
             else:
                 self.value.append(f[cell['event/eeg/value'][...][0][i]][...][0][0])
+        self.eeg_debut= int(self.sample[self.value.index(200.)])
+        self.eeg_fin=int(self.sample[self.value.index(150.0)])
+        
         # 6 event
     def var(self):
         debut = self.sample[self.value.index(200.)]
@@ -211,4 +217,3 @@ plt.show()
 
 
 ##########################################select feature1, feature2#################################################################
-
