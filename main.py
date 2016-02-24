@@ -53,67 +53,45 @@ class cell1(object):
 cell = [cell(f[data[i][0]]) for i in range(len(data))]
 cell1 = [cell1(ff[data1[i][0]]) for i in range(len(data1))]
 
-##################################################### updated 23 Feb ###########################################################
-def chunks(l,n):
-    for i in xrange(0,len(l),n):
-        yield l[i:i+n]
-# Devide list l into n chunks
 
 frequency = 44100
 cut = 0.05
 speech0 = []
 speech1 = []
-for i in cell:
-    duration = len(i.wav[0])/frequency
-    num_piece = duration/cut
-    i_cut = chunks(i.wav[0],int(len(i.wav[0])/num_piece))
-    bi = []
-    for j in i_cut:
-        if np.var(j) >= 0.0001:
-            bi.append(1)
-        else:
-            bi.append(0)
-    timing = []
-    it = [0]
-    counter = 1
-    for j in range(len(bi)-1):
-        if bi[j] != bi[j+1] and counter < 2:
-            it.append(j+1)
-            counter += 1
-        if bi[j] != bi[j+1] and counter == 2:
-            timing.append((it[0]*cut*frequency,it[1]*cut*frequency))
-            it = []
-            counter = 0
-    speech0.append(timing)
+def speech(frequency,cut,cell,side):
+    speech = []
+    def chunks(l,n):
+        for i in xrange(0,len(l),n):
+             yield l[i:i+n]
+    # Devide list l into n chunks
+    for i in cell:
+        duration = len(i.wav[side])/frequency
+        num_piece = duration/cut
+        i_cut = chunks(i.wav[side],int(len(i.wav[side])/num_piece))
+        bi = []
+        for j in i_cut:
+            if np.var(j) >= 0.00002:
+                bi.append(1)
+            else:
+                bi.append(0)
+        timing = []
+        it = [0]
+        counter = 1
+        for j in range(len(bi)-1):
+            if bi[j] != bi[j+1] and counter < 2:
+                it.append(j+1)
+                counter += 1
+            if bi[j] != bi[j+1] and counter == 2:
+                timing.append((it[0]*cut,it[1]*cut))
+                it = []
+                counter = 0
+        speech.append(timing)
+    return speech
 
-for i in cell:
-    duration = len(i.wav[0])/frequency
-    num_piece = duration/cut
-    i_cut = chunks(i.wav[1],int(len(i.wav[1])/num_piece))
-    bi = []
-    for j in i_cut:
-        if np.var(j) >= 0.0001:
-            bi.append(1)
-        else:
-            bi.append(0)
-    timing = []
-    it = [0]
-    counter = 1
-    for j in range(len(bi)-1):
-        if bi[j] != bi[j+1] and counter < 2:
-            it.append(j+1)
-            counter += 1
-        if bi[j] != bi[j+1] and counter == 2:
-            timing.append((it[0]*cut*frequency,it[1]*cut*frequency))
-            it = []
-            counter = 0
-    speech1.append(timing)
-
+speech0 = speech(frequency,cut,cell,0)
+speech1 = speech(frequency,cut,cell,0)
 # each element in speech0/1 is a list of tuples with the
 # beginning and ending index of a sentence (0:left, 1:right)
-
-##################################################### updated 23 Feb ###########################################################
-
 
 var = [cell[i].var() for i in range(len(data))]
 # Create a matrix which stores in each line the variance of each eeg
